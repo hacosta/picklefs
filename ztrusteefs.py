@@ -34,10 +34,12 @@ def is_dir(entry):
 
 def get_parent_path(path):
 	return "/".join(path.split("/")[:-1])
-		
 
 
 class MyStat(fuse.Stat):
+
+
+
 	"""
 	Convenient class for Stat objects.
 	Set up the stat object with appropriate
@@ -56,12 +58,28 @@ class MyStat(fuse.Stat):
 		self.st_mtime = _file_timestamp
 		self.st_ctime = _file_timestamp
 
+
 class ZtrusteeFS(fuse.Fuse):
 
-	def flush_tree(self):
-		fp = open(self.tree_path, "w")
-		json.dump(self.tree, fp)
-		fp.close()
+	class ZtrusteeFile:
+		"""
+		File class, used for all file-related operations
+		"""
+
+		def read(self, path, size, offset):
+			entry = path_to_entry(path, self.tree)
+			content = "hello world!"
+			file_size = len(content)
+			if offset < file_size:
+				if offset + size > file_size:
+					size = file_size - offset
+				return content[offset:offset+size]
+			else:
+				return ''
+
+		def write(self, buf, offset):
+			return len(buf)
+
 
 
 	def __init__(self, tree_path, *args, **kw):
@@ -70,6 +88,17 @@ class ZtrusteeFS(fuse.Fuse):
 		fp = open(tree_path)
 		self.tree = json.load(fp)
 		fp.close()
+
+
+	def main(self, *args, **kwargs):
+		self.file_class = self.ZtrusteeFile
+		return fuse.Fuse.main(self, *args, **kwargs)
+
+	def flush_tree(self):
+		fp = open(self.tree_path, "w")
+		json.dump(self.tree, fp)
+		fp.close()
+
 
 	def getattr(self, path):
 		entry = path_to_entry(path, self.tree)
@@ -95,16 +124,6 @@ class ZtrusteeFS(fuse.Fuse):
 		else:
 			return 0
 
-	def read(self, path, size, offset):
-		entry = path_to_entry(path, self.tree)
-		content = "hello world!"
-		file_size = len(content)
-		if offset < file_size:
-			if offset + size > file_size:
-				size = file_size - offset
-			return content[offset:offset+size]
-		else:
-			return ''
 	
 	def mkdir(self, path, mode):
 		#remove the last path
