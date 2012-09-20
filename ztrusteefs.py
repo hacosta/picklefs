@@ -60,6 +60,21 @@ class MyStat(fuse.Stat):
 
 
 class ZtrusteeFS(fuse.Fuse):
+	"""
+	The underlying structure of the fs looks like this:
+
+	{
+		'file1': {'deposit_uuid': 'xxxxxx'}, # Omited data for brevity
+		'file2': {'deposit_uuid': 'yyyyyy'},
+		'dir1': {
+			'dir2': {
+				'dir3': {}
+			},
+			'dir21': {
+			}
+		}
+	}
+	"""
 
 	class ZtrusteeFile:
 		"""
