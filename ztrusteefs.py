@@ -30,7 +30,7 @@ def is_file(entry):
 	return "deposit_uuid" in entry
 
 def is_dir(entry):
-	return "deposit_uuid" not in entry
+	return not is_file(entry)
 
 def get_parent_path(path):
 	return "/".join(path.split("/")[:-1])
