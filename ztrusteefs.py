@@ -107,7 +107,7 @@ class ZtrusteeFS(fuse.Fuse):
 
 	def flush_tree(self):
 		fp = open(self.tree_path, "w")
-		json.dump(self.tree, fp)
+		json.dump(self.tree, fp, indent=4)
 		fp.close()
 
 	def getattr(self, path):
