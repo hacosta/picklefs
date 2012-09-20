@@ -1,0 +1,16 @@
+{
+    "file2": {
+        "deposit_uuid": "fdkasjdf"
+    }, 
+    "file1": {
+        "deposit_uuid": "ojflsdfj"
+    }, 
+    "dir1": {
+        "dir2": {
+            "dir3": {}
+        }, 
+        "dir21": {}
+    }, 
+    "dir2": {}
+}
+
