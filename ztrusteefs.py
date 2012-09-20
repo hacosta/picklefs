@@ -96,7 +96,6 @@ class ZtrusteeFS(fuse.Fuse):
 			return len(buf)
 
 
-
 	def __init__(self, tree_path, *args, **kw):
 		fuse.Fuse.__init__(self, *args, **kw)
 		self.tree_path = tree_path
@@ -113,7 +112,6 @@ class ZtrusteeFS(fuse.Fuse):
 		fp = open(self.tree_path, "w")
 		json.dump(self.tree, fp)
 		fp.close()
-
 
 	def getattr(self, path):
 		entry = path_to_entry(path, self.tree)
