@@ -164,6 +164,74 @@ class ZtrusteeFS(fuse.Fuse):
 		del(parent_entry[name])
 		self.flush_tree()
 
+	### Incomplete templates
+	def create(self, path, flags, mode):
+		print '*** create', path, flags, oct(mode)
+		return -errno.ENOSYS
+
+	def getdir(self, path):
+		"""
+		return: [[('file1', 0), ('file2', 0), ... ]]
+		"""
+		print '*** getdir', path
+		return -errno.ENOSYS
+
+	def mythread ( self ):
+		print '*** mythread'
+		return -errno.ENOSYS
+
+	def chmod ( self, path, mode ):
+		print '*** chmod', path, oct(mode)
+		return -errno.ENOSYS
+
+	def chown ( self, path, uid, gid ):
+		print '*** chown', path, uid, gid
+		return -errno.ENOSYS
+
+	def fsync ( self, path, isFsyncFile ):
+		print '*** fsync', path, isFsyncFile
+		return -errno.ENOSYS
+
+	def link ( self, targetPath, linkPath ):
+		print '*** link', targetPath, linkPath
+		return -errno.ENOSYS
+
+	def mknod ( self, path, mode, dev ):
+		print '*** mknod', path, oct(mode), dev
+		return -errno.ENOSYS
+
+	def readlink ( self, path ):
+		print '*** readlink', path
+		return -errno.ENOSYS
+
+	def release ( self, path, flags ):
+		print '*** release', path, flags
+		return -errno.ENOSYS
+
+	def rename ( self, oldPath, newPath ):
+		print '*** rename', oldPath, newPath
+		return -errno.ENOSYS
+
+	def statfs ( self ):
+		print '*** statfs'
+		return -errno.ENOSYS
+
+	def symlink ( self, targetPath, linkPath ):
+		print '*** symlink', targetPath, linkPath
+		return -errno.ENOSYS
+
+	def truncate ( self, path, size ):
+		print '*** truncate', path, size
+		return -errno.ENOSYS
+
+	def unlink ( self, path ):
+		print '*** unlink', path
+		return -errno.ENOSYS
+
+	def utime ( self, path, times ):
+		print '*** utime', path, times
+		return -errno.ENOSYS
+
 
 if __name__ == '__main__':
 	fs = ZtrusteeFS('tree.json')
