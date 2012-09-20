@@ -37,9 +37,6 @@ def get_parent_path(path):
 
 
 class MyStat(fuse.Stat):
-
-
-
 	"""
 	Convenient class for Stat objects.
 	Set up the stat object with appropriate
@@ -136,7 +133,6 @@ class ZtrusteeFS(fuse.Fuse):
 			return -errno.EACCES
 		else:
 			return 0
-
 	
 	def mkdir(self, path, mode):
 		#remove the last path
