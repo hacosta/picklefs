@@ -13,24 +13,12 @@ fuse.fuse_python_api = (0, 2)
 _file_timestamp = int(time.time())
 
 
-def path_to_entry(path, json):
-	try:
-		if path == "/":
-			return json
-		else:
-			tmp = json
-			for i in path.split('/')[1:]:
-				tmp = tmp[i]
-		
-		return tmp
-	except Exception, e:
-		return None
 
 def is_file(entry):
-	return "deposit_uuid" in entry
+	return type(entry) is list
 
 def is_dir(entry):
-	return not is_file(entry)
+	return type(entry) is dict
 
 def get_parent_path(path):
 	return "/".join(path.split("/")[:-1])
@@ -57,6 +45,24 @@ class MyStat(fuse.Stat):
 
 
 class ZtrusteeFS(fuse.Fuse):
+	# Helper functions
+
+	def _path_to_entry(self, path):
+		"""
+		Returns the corresponding entry in the in-memory
+		data struct
+		"""
+		try:
+			if path == "/":
+				return self.tree
+			else:
+				ret = self.tree
+				for i in path.split('/')[1:]:
+					ret = ret[i]
+			return ret
+		except Exception, e:
+			return None
+
 	"""
 	The underlying structure of the fs looks like this:
 
@@ -72,24 +78,29 @@ class ZtrusteeFS(fuse.Fuse):
 		}
 	}
 	"""
-
 	class ZtrusteeFile:
 		"""
 		File class, used for all file-related operations
 		"""
 
 		def read(self, path, size, offset):
-			entry = path_to_entry(path, self.tree)
-			content = "hello world!"
-			file_size = len(content)
-			if offset < file_size:
-				if offset + size > file_size:
-					size = file_size - offset
-				return content[offset:offset+size]
+			print "*** read"
+			entry = self._path_to_entry(path)
+
+			if entry == None:
+				return -errno.ENOENT
 			else:
-				return ''
+				content = "hello world!"
+				file_size = len(content)
+				buf = ''
+				if offset < file_size:
+					if offset + size > file_size:
+						size = file_size - offset
+					buf = content[offset:offset+size]
+				return buf
 
 		def write(self, buf, offset):
+			print '*** write', path, buf, offset
 			return len(buf)
 
 
@@ -111,9 +122,11 @@ class ZtrusteeFS(fuse.Fuse):
 		fp.close()
 
 	def getattr(self, path):
-		entry = path_to_entry(path, self.tree)
+		print '*** getattr', path
+		entry = self._path_to_entry(path)
 
 		if entry is None:
+			print "---entry is none"
 			return -errno.ENOENT
 		else:
 			size = 1
@@ -122,25 +135,45 @@ class ZtrusteeFS(fuse.Fuse):
 	def readdir(self, path, offset):
 		yield fuse.Direntry('.')
 		yield fuse.Direntry('..')
-		tmp = path_to_entry(path, self.tree)
-		for e in tmp:
+		for e in self._path_to_entry(path):
 			yield fuse.Direntry(str(e))
 
 	def open(self, path, flags):
-		# Only support for 'READ ONLY' flag
+		print '*** open', path
+
 		access_flags = os.O_RDONLY | os.O_WRONLY | os.O_RDWR
-		if flags & access_flags != os.O_RDONLY:
+		entry = self._path_to_entry(path)
+		if entry == None:
+			return -errno.ENOENT
+		elif flags & access_flags != os.O_RDONLY:
 			return -errno.EACCES
 		else:
 			return 0
+
+	def create(self, path, flags, mode):
+		print '*** create', path, flags, oct(mode)
+		pp = get_parent_path(path)
+		entry = self._path_to_entry(pp)
+
+		if entry == None:
+			print "No ent"
+			return -errno.ENOENT
+		elif is_file(entry):
+			print "Notdir"
+			return -errno.ENOTDIR
+		filename = os.path.split(path)[-1]
+		entry[filename] = [ { 'deposit_uuid' : 'zzzzz'}, {'flags' : flags } ]
+
+		self.flush_tree()
 	
 	def mkdir(self, path, mode):
+		print '*** mkdir', path
 		#remove the last path
 		split = path.split("/")
 		dir = split[-1]
 		curr_entry = split[:-1]
 		curr_path = "/".join(curr_entry)
-		entry = path_to_entry(curr_path, self.tree)
+		entry = self._path_to_entry(curr_path)
 
 		if entry == None:
 			return -errno.ENOENT
@@ -151,7 +184,8 @@ class ZtrusteeFS(fuse.Fuse):
 		self.flush_tree()
 	
 	def rmdir(self, path):
-		entry = path_to_entry(path, self.tree)
+		print '*** rmdir', path
+		entry = self._path_to_entry(path)
 		if entry == None:
 			return -errno.ENOENT
 		elif is_file(entry):
@@ -159,16 +193,18 @@ class ZtrusteeFS(fuse.Fuse):
 		elif len(entry) != 0:
 			return -errno.EEXIST
 
-		parent_entry = path_to_entry(get_parent_path(path), self.tree)
+		parent_entry = self._path_to_entry(get_parent_path(path))
 		name = path.split("/")[-1]
 		del(parent_entry[name])
 		self.flush_tree()
+	
+	def utime(self, path, time):
+		print '*** utime', path, time
+		entry = self._path_to_entry(path)
+		entry.append({'time': time})
+		return 0
 
-	### Incomplete templates
-	def create(self, path, flags, mode):
-		print '*** create', path, flags, oct(mode)
-		return -errno.ENOSYS
-
+	### Incomplete templates (Taken from NullFS)
 	def getdir(self, path):
 		"""
 		return: [[('file1', 0), ('file2', 0), ... ]]
@@ -228,9 +264,6 @@ class ZtrusteeFS(fuse.Fuse):
 		print '*** unlink', path
 		return -errno.ENOSYS
 
-	def utime ( self, path, times ):
-		print '*** utime', path, times
-		return -errno.ENOSYS
 
 
 if __name__ == '__main__':
