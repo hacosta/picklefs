@@ -5,14 +5,13 @@ import fuse
 import stat
 import os
 import time
+import pickle
 import json
 
 fuse.fuse_python_api = (0, 2)
 
 # Use same timestamp for all files
 _file_timestamp = int(time.time())
-
-
 
 def is_file(entry):
 	return type(entry) is list
@@ -66,17 +65,6 @@ class ZtrusteeFS(fuse.Fuse):
 	"""
 	The underlying structure of the fs looks like this:
 
-	{
-		'file1': {'deposit_uuid': 'xxxxxx'}, # Omited data for brevity
-		'file2': {'deposit_uuid': 'yyyyyy'},
-		'dir1': {
-			'dir2': {
-				'dir3': {}
-			},
-			'dir21': {
-			}
-		}
-	}
 	"""
 	class ZtrusteeFile:
 		"""
@@ -108,7 +96,10 @@ class ZtrusteeFS(fuse.Fuse):
 		fuse.Fuse.__init__(self, *args, **kw)
 		self.tree_path = tree_path
 		fp = open(tree_path)
-		self.tree = json.load(fp)
+		try:
+			self.tree = pickle.load(fp)
+		except EOFError:
+			self.tree = {}
 		fp.close()
 
 
@@ -118,8 +109,11 @@ class ZtrusteeFS(fuse.Fuse):
 
 	def flush_tree(self):
 		fp = open(self.tree_path, "w")
-		json.dump(self.tree, fp, indent=4)
+		pickle.dump(self.tree, fp)
+		dfp = open(self.tree_path + ".json", "w")
+		json.dump(self.tree, dfp, indent=4)
 		fp.close()
+		dfp.close()
 
 	def getattr(self, path):
 		print '*** getattr', path
@@ -267,6 +261,6 @@ class ZtrusteeFS(fuse.Fuse):
 
 
 if __name__ == '__main__':
-	fs = ZtrusteeFS('tree.json')
+	fs = ZtrusteeFS('tree.pickle')
 	fs.parse(errex=1)
 	fs.main()
